@@ -6,6 +6,10 @@
 #include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/render.h>
+#include <wlr/types/wlr_screenshooter.h>
+#include <wlr/types/wlr_gamma_control.h>
+#include <wlr/types/wlr_idle.h>
+#include <wlr/types/wlr_primary_selection.h>
 
 struct mcw_server {
 	struct wl_display *wl_display;
@@ -95,6 +99,8 @@ static void new_output_notify(struct wl_listener *listener, void *data) {
 	wl_signal_add(&wlr_output->events.destroy, &output->destroy);
 	output->frame.notify = output_frame_notify;
 	wl_signal_add(&wlr_output->events.frame, &output->frame);
+
+	wlr_output_create_global(wlr_output);
 }
 
 int main(int argc, char **argv) {
@@ -113,11 +119,23 @@ int main(int argc, char **argv) {
 	server.new_output.notify = new_output_notify;
 	wl_signal_add(&server.backend->events.new_output, &server.new_output);
 
+	const char *socket = wl_display_add_socket_auto(server.wl_display);
+	assert(socket);
+
 	if (!wlr_backend_start(server.backend)) {
 		fprintf(stderr, "Failed to start backend\n");
 		wl_display_destroy(server.wl_display);
 		return 1;
 	}
+
+	printf("Running compositor on wayland display '%s'\n", socket);
+	setenv("WAYLAND_DISPLAY", socket, true);
+
+	wl_display_init_shm(server.wl_display);
+	wlr_gamma_control_manager_create(server.wl_display);
+	wlr_screenshooter_create(server.wl_display);
+	wlr_primary_selection_device_manager_create(server.wl_display);
+	wlr_idle_create(server.wl_display);
 
 	wl_display_run(server.wl_display);
 	wl_display_destroy(server.wl_display);

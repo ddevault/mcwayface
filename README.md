@@ -3,7 +3,8 @@
 This is a demonstration Wayland compositor that accompanies a series of blog
 posts written for [drewdevault.com](https://drewdevault.com).
 
-- **[Part 1: Hello wlroots](https://drewdevault.com/2018/02/17/Writing-a-Wayland-compositor-1.html)** (you are here)
+- [Part 1: Hello wlroots](https://drewdevault.com/2018/02/17/Writing-a-Wayland-compositor-1.html)
+- **[Part 2: Rigging up the server](https://drewdevault.com/2018/02/22/Writing-a-Wayland-compositor-2.html)** (you are here)
 
 ## Compiling
 
