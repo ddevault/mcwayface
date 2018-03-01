@@ -24,6 +24,8 @@ endif
 # Avoid wl_buffer deprecation warnings
 add_project_arguments('-DWL_HIDE_DEPRECATED', language: 'c')
 
+mcw_inc = include_directories('include')
+
 pixman         = dependency('pixman-1')
 wlroots        = dependency('wlroots')
 wayland_server = dependency('wayland-server')
@@ -31,11 +33,14 @@ wayland_server = dependency('wayland-server')
 executable(
 	'mcwayface',
 	[
-		'src/main.c'
+		'src/main.c',
+		'src/output.c',
+		'src/server.c'
 	],
+	include_directories: mcw_inc,
 	dependencies: [
 		pixman,
 		wlroots,
 		wayland_server,
-	]
+	],
 )
