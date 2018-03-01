@@ -6,16 +6,20 @@
 #include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/render.h>
-#include <wlr/types/wlr_screenshooter.h>
+#include <wlr/render/matrix.h>
+#include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_gamma_control.h>
 #include <wlr/types/wlr_idle.h>
 #include <wlr/types/wlr_primary_selection.h>
+#include <wlr/types/wlr_screenshooter.h>
+#include <wlr/types/wlr_xdg_shell_v6.h>
 
 struct mcw_server {
 	struct wl_display *wl_display;
 	struct wl_event_loop *wl_event_loop;
 
 	struct wlr_backend *backend;
+	struct wlr_compositor *compositor;
 
 	struct wl_listener new_output;
 
@@ -26,8 +30,6 @@ struct mcw_output {
 	struct wlr_output *wlr_output;
 	struct mcw_server *server;
 	struct timespec last_frame;
-	float color[4];
-	int dec;
 
 	struct wl_listener destroy;
 	struct wl_listener frame;
@@ -37,6 +39,7 @@ struct mcw_output {
 
 static void output_frame_notify(struct wl_listener *listener, void *data) {
 	struct mcw_output *output = wl_container_of(listener, output, frame);
+	struct mcw_server *server = output->server;
 	struct wlr_output *wlr_output = data;
 	struct wlr_renderer *renderer = wlr_backend_get_renderer(
 			wlr_output->backend);
@@ -44,23 +47,28 @@ static void output_frame_notify(struct wl_listener *listener, void *data) {
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	// Calculate a color, just for pretty demo purposes
-	long ms = (now.tv_sec - output->last_frame.tv_sec) * 1000 +
-		(now.tv_nsec - output->last_frame.tv_nsec) / 1000000;
-	int inc = (output->dec + 1) % 3;
-	output->color[inc] += ms / 2000.0f;
-	output->color[output->dec] -= ms / 2000.0f;
-	if (output->color[output->dec] < 0.0f) {
-		output->color[inc] = 1.0f;
-		output->color[output->dec] = 0.0f;
-		output->dec = inc;
-	}
-	// End pretty color calculation
-
 	wlr_output_make_current(wlr_output, NULL);
 	wlr_renderer_begin(renderer, wlr_output);
 
-	wlr_renderer_clear(renderer, &output->color);
+	float color[4] = { 0.4f, 0.4f, 0.4f, 1.0f };
+	wlr_renderer_clear(renderer, &color);
+
+	struct wl_resource *_surface;
+	wl_resource_for_each(_surface, &server->compositor->surfaces) {
+		struct wlr_surface *surface = wlr_surface_from_resource(_surface);
+		if (!wlr_surface_has_buffer(surface)) {
+			continue;
+		}
+		struct wlr_box render_box = {
+			.x = 20, .y = 20,
+			.width = surface->current->width, .height = surface->current->height
+		};
+		float matrix[16];
+		wlr_matrix_project_box(&matrix, &render_box,
+				surface->current->transform, 0, &wlr_output->transform_matrix);
+		wlr_render_with_matrix(renderer, surface->texture, &matrix, 1.0f);
+		wlr_surface_send_frame_done(surface, &now);
+	}
 
 	wlr_output_swap_buffers(wlr_output, NULL, NULL);
 	wlr_renderer_end(renderer);
@@ -91,8 +99,6 @@ static void new_output_notify(struct wl_listener *listener, void *data) {
 	clock_gettime(CLOCK_MONOTONIC, &output->last_frame);
 	output->server = server;
 	output->wlr_output = wlr_output;
-	output->color[0] = 1.0;
-	output->color[3] = 1.0;
 	wl_list_insert(&server->outputs, &output->link);
 
 	output->destroy.notify = output_destroy_notify;
@@ -136,6 +142,11 @@ int main(int argc, char **argv) {
 	wlr_screenshooter_create(server.wl_display);
 	wlr_primary_selection_device_manager_create(server.wl_display);
 	wlr_idle_create(server.wl_display);
+
+	server.compositor = wlr_compositor_create(server.wl_display,
+			wlr_backend_get_renderer(server.backend));
+
+	wlr_xdg_shell_v6_create(server.wl_display);
 
 	wl_display_run(server.wl_display);
 	wl_display_destroy(server.wl_display);
