@@ -4,7 +4,7 @@
 #include <time.h>
 #include <wayland-server.h>
 #include <wlr/render.h>
-#include <wlr/render/matrix.h>
+#include <wlr/types/wlr_matrix.h>
 #include <wlr/types/wlr_surface.h>
 #include "server.h"
 
@@ -22,7 +22,7 @@ static void output_frame_notify(struct wl_listener *listener, void *data) {
 	wlr_renderer_begin(renderer, wlr_output);
 
 	float color[4] = { 0.4f, 0.4f, 0.4f, 1.0f };
-	wlr_renderer_clear(renderer, &color);
+	wlr_renderer_clear(renderer, color);
 
 	struct wl_resource *_surface;
 	wl_resource_for_each(_surface, &server->compositor->surfaces) {
@@ -35,9 +35,9 @@ static void output_frame_notify(struct wl_listener *listener, void *data) {
 			.width = surface->current->width, .height = surface->current->height
 		};
 		float matrix[16];
-		wlr_matrix_project_box(&matrix, &render_box,
-				surface->current->transform, 0, &wlr_output->transform_matrix);
-		wlr_render_with_matrix(renderer, surface->texture, &matrix, 1.0f);
+		wlr_matrix_project_box(matrix, &render_box,
+				surface->current->transform, 0, wlr_output->transform_matrix);
+		wlr_render_texture_with_matrix(renderer, surface->texture, matrix, 1.0f);
 		wlr_surface_send_frame_done(surface, &now);
 	}
 

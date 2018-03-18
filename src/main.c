@@ -6,7 +6,7 @@
 #include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/render.h>
-#include <wlr/render/matrix.h>
+#include <wlr/types/wlr_matrix.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_gamma_control.h>
 #include <wlr/types/wlr_idle.h>
