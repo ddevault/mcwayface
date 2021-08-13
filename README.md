@@ -1,5 +1,12 @@
 # Wayland McWayface
 
+> ## ⚠️ Out-of-date material
+>
+> This example compositor doesn't work with the latest wlroots API and won't be
+> updated. **Please don't use it**. Instead, please use
+> [tinywl](https://github.com/swaywm/wlroots/tree/master/tinywl) as a
+> reference.
+
 This is a demonstration Wayland compositor that accompanies a series of blog
 posts written for [drewdevault.com](https://drewdevault.com).
 
